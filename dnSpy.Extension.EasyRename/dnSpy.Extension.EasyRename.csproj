@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 
-    <!-- Imports dnSpyEx common properties -->
-    <Import Project="../deps/dnSpyEx/DnSpyCommon.props" />
+    <!-- Imports dnSpy common properties -->
+    <Import Project="../deps/dnSpy/DnSpyCommon.props" />
 
     <PropertyGroup>
         <Title>Easy Rename</Title>
-        <Description>A simple dnSpyEx extension for easily renaming members</Description>
+        <Description>A simple dnSpy extension for easily renaming members</Description>
         <Authors>puff</Authors>
         <Copyright>Copyright © puff 2023</Copyright>
         <FileVersion>0.1.0.0</FileVersion>
@@ -19,7 +19,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\deps\dnSpyEx\dnSpy\dnSpy.Contracts.DnSpy\dnSpy.Contracts.DnSpy.csproj" />
+        <ProjectReference Include="..\deps\dnSpy\dnSpy\dnSpy.Contracts.DnSpy\dnSpy.Contracts.DnSpy.csproj" />
     </ItemGroup>
 
     <!-- Add all output files to a group so we can copy them in Debug mode -->
@@ -27,9 +27,9 @@
         <_CopyItems Include="$(OutDir)$(AssemblyName).dll" Visible="false" />
     </ItemGroup>
 
-    <!-- Copy Debug output to dnSpyEx extensions folder-->
+    <!-- Copy Debug output to dnSpy extensions folder-->
     <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(ConfigurationName)' == 'Debug'">
-        <Copy SourceFiles="@(_CopyItems)" DestinationFolder="../deps/dnSpyEx/dnSpy/dnSpy/bin/$(ConfigurationName)/$(TargetFramework)/Extensions" />
+        <Copy SourceFiles="@(_CopyItems)" DestinationFolder="../deps/dnSpy/dnSpy/dnSpy/bin/$(ConfigurationName)/$(TargetFramework)/Extensions" />
     </Target>
 
 </Project>
