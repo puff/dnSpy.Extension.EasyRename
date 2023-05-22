@@ -3,6 +3,7 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using dnlib.DotNet;
 using dnSpy.Contracts.App;
+using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Documents.Tabs;
 using dnSpy.Contracts.Documents.Tabs.DocViewer;
 using dnSpy.Contracts.Menus;
@@ -50,13 +51,19 @@ public sealed class RenameMemberCommand : MenuItemBase
             member.DeclaringType.Name = newName;
         else
         {
-            if (member is MethodDef method && (method.IsAbstract || method.IsVirtual))
+            if (member is MethodDef { IsVirtual: true } method)
             {
-                foreach(var t in method.Module.GetTypes().Where(x => HasBaseType(x, method.DeclaringType, false)))
+                var sigComparer = new SigComparer(0, method.Module);
+                foreach(var t in method.Module.GetTypes().Where(x => HasBaseType(x, method.DeclaringType.GetScopeType()!, false)))
                 {
-                    var @override = t.FindMethod(method.Name, method.MethodSig);
-                    if (@override is { IsVirtual: true })
-                        @override.Name = newName;
+                    foreach (var m in t.Methods)
+                    {
+                        if (!m.IsVirtual || !m.Name.Equals(method.Name) || !sigComparer.Equals(method.MethodSig, m.MethodSig))
+                            continue;
+
+                        m.Name = newName;
+                        break;
+                    }
                 }
             }
             
@@ -69,21 +76,36 @@ public sealed class RenameMemberCommand : MenuItemBase
     }
 
     /// <summary>
-    /// Checks whether a type implements a specific base type.
+    /// Checks whether a type implements a specific base type or interface.
     /// </summary>
     /// <param name="type">The type to check on.</param>
-    /// <param name="baseType">The base type to check for.</param>
+    /// <param name="baseType">The base type or interface to check for.</param>
     /// <param name="implicit">Whether to check the type itself against the base type as well.</param>
-    /// <returns>Whether the type implements a specific base type.</returns>
+    /// <returns>Whether the type implements a specific base type or interface.</returns>
     private static bool HasBaseType(ITypeDefOrRef type, ITypeDefOrRef baseType, bool @implicit = true)
     {
-        var bt = @implicit ? type : type.GetBaseType();
+        if (!@implicit && type == baseType)
+            return false;
+
+        var isInterface = baseType is TypeDef { IsInterface: true };
+
+        var bt = type.GetScopeType();
         while (bt is not null)
         {
+            var resolved = bt.Resolve();
+            if (isInterface)
+            {
+                if (resolved is not null && resolved.Interfaces.Any(i => i.Interface.GetScopeType()!.Equals(baseType)))
+                    return true;
+                
+                bt = bt.GetBaseType().GetScopeType();
+                continue;
+            }
+            
             if (bt.Equals(baseType)) 
                 return true;
             
-            bt = bt.GetBaseType();
+            bt = bt.GetBaseType().GetScopeType();
         }
 
         return false;
