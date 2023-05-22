@@ -14,7 +14,7 @@
     <option name="PROJECT_KIND" value="DotNetCore" />
     <option name="PROJECT_TFM" value="net6.0-windows" />
     <method v="2">
-      <option name="Build" />
+      <option name="Build" default="false" projectName="dnSpy.Extension.EasyRename" projectPath="file://$PROJECT_DIR$/dnSpy.Extension.EasyRename/dnSpy.Extension.EasyRename.csproj" />
     </method>
   </configuration>
 </component>
