@@ -8,6 +8,7 @@ Simply right click a member and click the `Rename Member` in the context menu. I
 
 ## Features
 - [x] Rename overridden methods automatically.
+  - See [issues](https://github.com/puff/dnSpy.Extension.EasyRename/issues) for current limitations.
 - [x] Rename type when renaming a constructor method.
 
 ### Warnings
