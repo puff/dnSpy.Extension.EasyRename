@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel.Composition;
+using System.Linq;
 using dnlib.DotNet;
 using dnSpy.Contracts.App;
 using dnSpy.Contracts.Documents.Tabs;
@@ -48,11 +49,44 @@ public sealed class RenameMemberCommand : MenuItemBase
         if (isConstructor)
             member.DeclaringType.Name = newName;
         else
+        {
+            if (member is MethodDef method && (method.IsAbstract || method.IsVirtual))
+            {
+                foreach(var t in method.Module.GetTypes().Where(x => HasBaseType(x, method.DeclaringType, false)))
+                {
+                    var @override = t.FindMethod(method.Name, method.MethodSig);
+                    if (@override is { IsVirtual: true })
+                        @override.Name = newName;
+                }
+            }
+            
             member.Name = newName;
+        }
 
         var moduleDocNode = _documentTabService.DocumentTreeView.FindNode(member.Module)!;
         _documentTabService.DocumentTreeView.TreeView.RefreshAllNodes();
         _documentTabService.RefreshModifiedDocument(moduleDocNode.Document);
+    }
+
+    /// <summary>
+    /// Checks whether a type implements a specific base type.
+    /// </summary>
+    /// <param name="type">The type to check on.</param>
+    /// <param name="baseType">The base type to check for.</param>
+    /// <param name="implicit">Whether to check the type itself against the base type as well.</param>
+    /// <returns>Whether the type implements a specific base type.</returns>
+    private static bool HasBaseType(ITypeDefOrRef type, ITypeDefOrRef baseType, bool @implicit = true)
+    {
+        var bt = @implicit ? type : type.GetBaseType();
+        while (bt is not null)
+        {
+            if (bt.Equals(baseType)) 
+                return true;
+            
+            bt = bt.GetBaseType();
+        }
+
+        return false;
     }
 
     private static IMemberDef? GetMemberDef(IMenuItemContext context) 
