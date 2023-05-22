@@ -3,6 +3,9 @@ dnSpy.Extension.EasyRename
 
 A simple [dnSpy] extension for easily renaming members.
 
+# Usage
+Simply right click a member and click the `Rename Member` in the context menu. It will be under the `Edit <xxx>...` option.
+
 ## Features
 - [x] Rename overridden methods automatically.
 - [x] Rename type when renaming a constructor method.
