@@ -54,11 +54,11 @@ public sealed class RenameMemberCommand : MenuItemBase
             if (member is MethodDef { IsVirtual: true } method)
             {
                 var sigComparer = new SigComparer(0, method.Module);
-                foreach(var t in method.Module.GetTypes().Where(x => HasBaseType(x, method.DeclaringType.GetScopeType()!, false)))
+                foreach(var t in method.Module.GetTypes().Where(x => IsDerived(x, method.DeclaringType.GetScopeType()!, false) || IsOverriddenFrom(x, method, sigComparer)))
                 {
                     foreach (var m in t.Methods)
                     {
-                        if (!m.IsVirtual || !m.Name.Equals(method.Name) || !sigComparer.Equals(method.MethodSig, m.MethodSig))
+                        if (!IsOverride(m, method, t, sigComparer))
                             continue;
 
                         m.Name = newName;
@@ -75,6 +75,36 @@ public sealed class RenameMemberCommand : MenuItemBase
         _documentTabService.RefreshModifiedDocument(moduleDocNode.Document);
     }
 
+    private static bool IsOverride(MethodDef method, IMethod @base, ITypeDefOrRef baseType, SigComparer sigComparer)
+    {
+        return method.IsVirtual &&
+               (method.Name.Equals(@base.Name) || $"{baseType.Name}.{method.Name}".Equals(@base.Name)) &&
+               sigComparer.Equals(@base.MethodSig, method.MethodSig);
+    }
+    
+    /// <summary>
+    /// Checks if <paramref name="method"/> is overridden from <paramref name="type"/>.
+    /// </summary>
+    /// <param name="type">The type to check overrides.</param>
+    /// <param name="method">The method to check if its overridden.</param>
+    /// <param name="sigComparer">Optional signature comparer to compare method signatures for checking overrides.</param>
+    /// <returns>Whether the <paramref name="method"/> is overridden from a method in <paramref name="type"/>.</returns>
+    private static bool IsOverriddenFrom(TypeDef type, MethodDef method, SigComparer sigComparer = new())
+    {
+        if (!method.IsVirtual || type.Equals(method.DeclaringType) || !IsDerived(method.DeclaringType, type, false))
+            return false;
+
+        foreach (var m in type.Methods)
+        {
+            if (!IsOverride(m, method, type, sigComparer))
+                continue;
+            
+            return true;
+        }
+        
+        return false;
+    }
+
     /// <summary>
     /// Checks whether a type implements a specific base type or interface.
     /// </summary>
@@ -82,13 +112,13 @@ public sealed class RenameMemberCommand : MenuItemBase
     /// <param name="baseType">The base type or interface to check for.</param>
     /// <param name="implicit">Whether to check the type itself against the base type as well.</param>
     /// <returns>Whether the type implements a specific base type or interface.</returns>
-    private static bool HasBaseType(ITypeDefOrRef type, ITypeDefOrRef baseType, bool @implicit = true)
+    private static bool IsDerived(ITypeDefOrRef type, ITypeDefOrRef baseType, bool @implicit = true)
     {
         if (!@implicit && type == baseType)
             return false;
 
+        // Checks base types and interfaces of type to see if it is from baseType
         var isInterface = baseType is TypeDef { IsInterface: true };
-
         var bt = type.GetScopeType();
         while (bt is not null)
         {
