@@ -6,6 +6,7 @@ using dnSpy.Contracts.App;
 using dnSpy.Contracts.Decompiler;
 using dnSpy.Contracts.Documents.Tabs;
 using dnSpy.Contracts.Documents.Tabs.DocViewer;
+using dnSpy.Contracts.Documents.TreeView;
 using dnSpy.Contracts.Menus;
 using dnSpy.Contracts.TreeView;
 
@@ -66,13 +67,19 @@ public sealed class RenameMemberCommand : MenuItemBase
                     }
                 }
             }
-            
-            member.Name = newName;
         }
 
-        var moduleDocNode = _documentTabService.DocumentTreeView.FindNode(member.Module)!;
-        _documentTabService.DocumentTreeView.TreeView.RefreshAllNodes();
-        _documentTabService.RefreshModifiedDocument(moduleDocNode.Document);
+        member.Name = newName;
+        if (member.IsTypeDef)
+            member.Module.ResetTypeDefFindCache();
+        
+        // Refresh UI
+        var memberNode = _documentTabService.DocumentTreeView.FindNode(member);
+        if (memberNode is not null)
+        {
+            memberNode.TreeNode.RefreshUI();
+            _documentTabService.RefreshModifiedDocument(memberNode.GetDocumentNode()?.Document!);
+        }
     }
 
     /// <summary>
