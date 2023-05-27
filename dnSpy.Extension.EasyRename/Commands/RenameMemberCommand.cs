@@ -69,6 +69,13 @@ public sealed class RenameMemberCommand : MenuItemBase
             }
         }
 
+        // Update MemberRef rows
+        var memberRefs = new MemberFinder().FindAll(member.Module).MemberRefs.Keys?
+            .Where(x => new SigComparer(0).Equals(x, member));
+        if (memberRefs is not null)
+            foreach (var memberRef in memberRefs)
+                memberRef.Name = newName;
+            
         member.Name = newName;
         if (member.IsTypeDef)
             member.Module.ResetTypeDefFindCache();
